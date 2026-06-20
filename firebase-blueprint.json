@@ -1,0 +1,58 @@
+{
+  "collections": [
+    {
+      "name": "users",
+      "fields": [
+        { "name": "email", "type": "string" },
+        { "name": "name", "type": "string" },
+        { "name": "whatsapp", "type": "string" },
+        { "name": "photoURL", "type": "string", "optional": true },
+        { "name": "createdAt", "type": "timestamp" }
+      ],
+      "rules": [
+        {
+          "allow": "read",
+          "condition": "true"
+        },
+        {
+          "allow": "create",
+          "condition": "request.auth != null && request.auth.uid == document"
+        },
+        {
+          "allow": "update",
+          "condition": "request.auth != null && request.auth.uid == document"
+        }
+      ]
+    },
+    {
+      "name": "products",
+      "fields": [
+        { "name": "publisherId", "type": "string" },
+        { "name": "name", "type": "string" },
+        { "name": "category", "type": "string" },
+        { "name": "price", "type": "number" },
+        { "name": "image", "type": "string" },
+        { "name": "rating", "type": "number", "optional": true },
+        { "name": "reviews", "type": "number", "optional": true },
+        { "name": "badge", "type": "string", "optional": true },
+        { "name": "sales", "type": "number", "optional": true },
+        { "name": "createdAt", "type": "timestamp" },
+        { "name": "publisherWhatsapp", "type": "string", "optional": true }
+      ],
+      "rules": [
+        {
+          "allow": "read",
+          "condition": "true"
+        },
+        {
+          "allow": "create",
+          "condition": "request.auth != null && request.resource.data.publisherId == request.auth.uid"
+        },
+        {
+          "allow": "update, delete",
+          "condition": "request.auth != null && resource.data.publisherId == request.auth.uid"
+        }
+      ]
+    }
+  ]
+}
