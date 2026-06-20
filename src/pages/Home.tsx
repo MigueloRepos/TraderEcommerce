@@ -6,7 +6,6 @@ import { SocialProof } from '../components/home/SocialProof';
 import { Categories } from '../components/home/Categories';
 import { ProductSliders } from '../components/home/ProductSliders';
 import { Benefits } from '../components/home/Benefits';
-import { FeaturedProduct } from '../components/home/FeaturedProduct';
 import { TrustAndCompare } from '../components/home/TrustAndCompare';
 import { OfferAndFAQ } from '../components/home/OfferAndFAQ';
 
@@ -20,7 +19,6 @@ export default function Home() {
         <Categories />
         <ProductSliders />
         <Benefits />
-        <FeaturedProduct />
         <TrustAndCompare />
         <OfferAndFAQ />
       </main>

@@ -3,11 +3,11 @@ import { motion } from 'motion/react';
 import { useCart } from '../store/useCart';
 import { Header } from '../components/layout/Header';
 import { Footer } from '../components/layout/Footer';
-import { ShieldCheck, CreditCard, Mail, Search, MessageCircle } from 'lucide-react';
+import { ShieldCheck, CreditCard, Mail, Search, MessageCircle, X } from 'lucide-react';
 import { Button } from '../components/ui/Shared';
 
 export function Checkout() {
-  const { items, total } = useCart();
+  const { items, total, removeItem } = useCart();
   const [method, setMethod] = useState<'stripe' | 'paypal' | 'zelle' | 'whatsapp'>('stripe');
 
   const handleWhatsappOrder = () => {
@@ -128,10 +128,15 @@ export function Checkout() {
               ) : (
                 <div className="space-y-4 mb-6 max-h-[40vh] overflow-y-auto pr-2">
                   {items.map(item => (
-                    <div key={item.id} className="flex gap-4">
+                    <div key={item.id} className="flex gap-4 group relative">
                       <img src={item.image} alt={item.name} className="w-16 h-16 object-contain bg-gray-50 rounded-xl" />
                       <div className="flex-1">
-                        <h4 className="font-medium text-sm text-gray-900 leading-tight">{item.name}</h4>
+                        <div className="flex justify-between items-start">
+                          <h4 className="font-medium text-sm text-gray-900 leading-tight pr-6">{item.name}</h4>
+                          <button onClick={() => removeItem(item.id)} className="text-gray-400 hover:text-red-500 transition-colors bg-white rounded-full p-1 -mt-1 -mr-1 shadow-sm border border-gray-100 flex-shrink-0" title="Eliminar producto">
+                            <X size={14} />
+                          </button>
+                        </div>
                         <div className="text-gray-500 text-xs mt-1">Cant: {item.quantity}</div>
                         <div className="font-bold text-sm mt-1">${(item.price * item.quantity).toFixed(2)}</div>
                       </div>

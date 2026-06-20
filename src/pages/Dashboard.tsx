@@ -26,6 +26,9 @@ export function Dashboard() {
   const [newImage, setNewImage] = useState('');
   const [newWhatsapp, setNewWhatsapp] = useState('');
   const [showPreview, setShowPreview] = useState(false);
+  const [isPublishing, setIsPublishing] = useState(false);
+  const [publishSuccess, setPublishSuccess] = useState(false);
+  const [publishError, setPublishError] = useState('');
 
   useEffect(() => {
     const unsub = onAuthStateChanged((u) => {
@@ -70,6 +73,9 @@ export function Dashboard() {
   const handleCreateProduct = async (e?: React.FormEvent | React.MouseEvent) => {
     if (e) e.preventDefault();
     if (!user) return;
+    setIsPublishing(true);
+    setPublishError('');
+    setPublishSuccess(false);
     try {
       await addDoc(collection(db, 'products'), {
         publisherId: user.uid,
@@ -83,18 +89,23 @@ export function Dashboard() {
         publisherWhatsapp: newWhatsapp,
         createdAt: serverTimestamp()
       });
-      alert('Producto creado exitosamente');
-      setNewName('');
-      setNewPrice('');
-      setNewImage('');
-      setCustomCategory('');
-      setNewCategory('audio');
-      setShowPreview(false);
-      setActiveTab('products');
-      loadMyProducts(user.uid);
+      setPublishSuccess(true);
+      setTimeout(() => {
+        setNewName('');
+        setNewPrice('');
+        setNewImage('');
+        setCustomCategory('');
+        setNewCategory('audio');
+        setShowPreview(false);
+        setActiveTab('products');
+        setPublishSuccess(false);
+        setIsPublishing(false);
+        loadMyProducts(user.uid);
+      }, 2000);
     } catch (error) {
       console.error("Error adding document: ", error);
-      alert('Error creando producto. Asegurate de tener los permisos.');
+      setPublishError('Error creando producto. Asegurate de tener los permisos.');
+      setIsPublishing(false);
     }
   };
 
@@ -186,8 +197,8 @@ export function Dashboard() {
                   <div className="w-10 h-10 rounded-full bg-green-50 text-green-600 flex items-center justify-center mb-4">
                     <DollarSign size={20} />
                   </div>
-                  <div className="text-gray-500 text-sm font-medium mb-1">Ingresos Totales</div>
-                  <div className="text-3xl font-bold">$12,450</div>
+                  <div className="text-gray-500 text-sm font-medium mb-1">Valor en Inventario</div>
+                  <div className="text-3xl font-bold">${myProducts.reduce((sum, p) => sum + (p.price || 0), 0).toFixed(2)}</div>
                 </div>
                 <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm">
                   <div className="w-10 h-10 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center mb-4">
@@ -200,8 +211,8 @@ export function Dashboard() {
                   <div className="w-10 h-10 rounded-full bg-purple-50 text-purple-600 flex items-center justify-center mb-4">
                     <TrendingUp size={20} />
                   </div>
-                  <div className="text-gray-500 text-sm font-medium mb-1">Vistas este mes</div>
-                  <div className="text-3xl font-bold">1,894</div>
+                  <div className="text-gray-500 text-sm font-medium mb-1">Precio Promedio</div>
+                  <div className="text-3xl font-bold">${(myProducts.length > 0 ? myProducts.reduce((sum, p) => sum + (p.price || 0), 0) / myProducts.length : 0).toFixed(2)}</div>
                 </div>
               </div>
             </div>
@@ -319,8 +330,23 @@ export function Dashboard() {
                         <p><strong>WhatsApp de Envío:</strong> {newWhatsapp}</p>
                       </div>
                       <div className="flex flex-col gap-3">
-                        <Button onClick={handleCreateProduct} className="w-full flex justify-center py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all font-semibold text-lg">Publicar Ahora</Button>
-                        <button onClick={() => setShowPreview(false)} className="w-full px-6 py-3 rounded-xl font-semibold bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors">Volver y Editar</button>
+                        {publishError && <p className="text-red-500 text-sm font-medium px-1">{publishError}</p>}
+                        <Button 
+                          onClick={handleCreateProduct} 
+                          disabled={isPublishing || publishSuccess}
+                          className={`w-full flex justify-center py-4 rounded-xl shadow-[0_4px_14px_0_rgba(0,0,0,0.1)] transition-all font-semibold text-lg ${
+                            publishSuccess 
+                              ? 'bg-green-500 hover:bg-green-600 text-white cursor-default focus:ring-green-500 shadow-[0_4px_14px_0_rgba(34,197,94,0.39)]' 
+                              : isPublishing 
+                                ? 'bg-blue-400 cursor-not-allowed text-white'
+                                : 'bg-blue-600 hover:bg-blue-700 text-white shadow-[0_4px_14px_0_rgba(37,99,235,0.39)] hover:shadow-[0_6px_20px_rgba(37,99,235,0.23)] hover:-translate-y-0.5'
+                          }`}
+                        >
+                          {isPublishing ? 'Publicando...' : publishSuccess ? '¡Producto Publicado!' : 'Publicar Ahora'}
+                        </Button>
+                        {!publishSuccess && !isPublishing && (
+                          <button onClick={() => setShowPreview(false)} className="w-full px-6 py-3 rounded-xl font-semibold bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors">Volver y Editar</button>
+                        )}
                       </div>
                     </div>
                   </div>
