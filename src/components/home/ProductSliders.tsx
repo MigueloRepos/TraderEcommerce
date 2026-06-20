@@ -1,10 +1,12 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { motion } from 'motion/react';
 import { Section } from '../ui/Shared';
 import { ShoppingBag, Star, Heart, ArrowRight } from 'lucide-react';
 import { Product } from '../../types';
 import { useCart } from '../../store/useCart';
 import { Link } from 'react-router-dom';
+import { collection, getDocs, query, limit, orderBy } from 'firebase/firestore';
+import { db } from '../../lib/firebase';
 
 const IMAGES = [
   'https://images.unsplash.com/photo-1546868871-7041f2a55e12?w=400',
@@ -28,6 +30,30 @@ const BEST_SELLERS: Product[] = Array.from({ length: 10 }).map((_, i) => ({
 
 export function ProductSliders() {
   const addItem = useCart(state => state.addItem);
+  const [products, setProducts] = useState<Product[]>(BEST_SELLERS);
+
+  useEffect(() => {
+    async function loadProducts() {
+      try {
+        const q = query(collection(db, 'products'), orderBy('createdAt', 'desc'), limit(10));
+        const snap = await getDocs(q);
+        const fetched: Product[] = [];
+        snap.forEach(doc => fetched.push({ id: doc.id, ...doc.data() } as Product));
+        
+        if (fetched.length > 0) {
+          // Fill up to 10 products with BEST_SELLERS if we have less than 10
+          if (fetched.length < 10) {
+            setProducts([...fetched, ...BEST_SELLERS.slice(0, 10 - fetched.length)]);
+          } else {
+            setProducts(fetched);
+          }
+        }
+      } catch (error) {
+        console.error("Error loading products", error);
+      }
+    }
+    loadProducts();
+  }, []);
 
   return (
     <>
@@ -46,7 +72,7 @@ export function ProductSliders() {
         <div className="overflow-hidden group pb-12 pt-4 px-4 sm:px-0">
           <div className="flex gap-6 animate-carousel group-hover:[animation-play-state:paused] w-max">
             {/* Double the products array to create a seamless loop */}
-            {[...BEST_SELLERS, ...BEST_SELLERS].map((product, i) => (
+            {[...products, ...products].map((product, i) => (
               <div
                 key={`${product.id}-${i}`}
                 className="shrink-0 w-[280px] sm:w-[320px] group/item relative"

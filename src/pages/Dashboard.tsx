@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { motion } from 'motion/react';
 import { User as FirebaseUser } from 'firebase/auth';
-import { collection, query, where, getDocs, addDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, query, where, getDocs, addDoc, deleteDoc, doc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { loginWithGoogle, logoutUser, onAuthStateChanged } from '../lib/auth';
 import { Header } from '../components/layout/Header';
@@ -22,8 +22,10 @@ export function Dashboard() {
   const [newName, setNewName] = useState('');
   const [newPrice, setNewPrice] = useState('');
   const [newCategory, setNewCategory] = useState('audio');
+  const [customCategory, setCustomCategory] = useState('');
   const [newImage, setNewImage] = useState('');
   const [newWhatsapp, setNewWhatsapp] = useState('');
+  const [showPreview, setShowPreview] = useState(false);
 
   useEffect(() => {
     const unsub = onAuthStateChanged((u) => {
@@ -48,15 +50,32 @@ export function Dashboard() {
     }
   };
 
-  const handleCreateProduct = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 2 * 1024 * 1024) { // 2MB limit for base64 storage
+        alert('La imagen es demasiado grande. Por favor, selecciona una imagen menor a 2MB.');
+        return;
+      }
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setNewImage(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const currentCategory = newCategory === 'otra' ? customCategory : newCategory;
+
+  const handleCreateProduct = async (e?: React.FormEvent | React.MouseEvent) => {
+    if (e) e.preventDefault();
     if (!user) return;
     try {
       await addDoc(collection(db, 'products'), {
         publisherId: user.uid,
         name: newName,
         price: parseFloat(newPrice),
-        category: newCategory,
+        category: currentCategory,
         image: newImage || 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=400',
         rating: 5.0,
         reviews: 0,
@@ -68,11 +87,27 @@ export function Dashboard() {
       setNewName('');
       setNewPrice('');
       setNewImage('');
+      setCustomCategory('');
+      setNewCategory('audio');
+      setShowPreview(false);
       setActiveTab('products');
       loadMyProducts(user.uid);
     } catch (error) {
       console.error("Error adding document: ", error);
       alert('Error creando producto. Asegurate de tener los permisos.');
+    }
+  };
+
+  const handleDeleteProduct = async (productId: string) => {
+    if (!user) return;
+    if (window.confirm('¿Estás seguro de que quieres eliminar este producto?')) {
+      try {
+        await deleteDoc(doc(db, 'products', productId));
+        loadMyProducts(user.uid);
+      } catch (error) {
+        console.error("Error deleting document: ", error);
+        alert('Error eliminando producto.');
+      }
     }
   };
 
@@ -202,8 +237,9 @@ export function Dashboard() {
                           </td>
                           <td className="p-4 text-gray-600 font-bold">${p.price.toFixed(2)}</td>
                           <td className="p-4 text-gray-500 capitalize">{p.category}</td>
-                          <td className="p-4 text-right">
+                          <td className="p-4 text-right flex justify-end gap-3">
                             <button className="text-blue-600 text-sm font-medium hover:underline">Editar</button>
+                            <button onClick={() => handleDeleteProduct(p.id)} className="text-red-600 text-sm font-medium hover:underline">Eliminar</button>
                           </td>
                         </tr>
                       ))
@@ -216,39 +252,80 @@ export function Dashboard() {
 
           {activeTab === 'new' && (
             <div className="max-w-2xl">
-              <h2 className="text-2xl font-bold mb-6">Subir Nuevo Producto</h2>
-              <form onSubmit={handleCreateProduct} className="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm space-y-6">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Nombre del producto</label>
-                  <input required value={newName} onChange={e => setNewName(e.target.value)} type="text" className="w-full p-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-gray-900 outline-none" />
-                </div>
-                <div className="grid grid-cols-2 gap-6">
+              <h2 className="text-2xl font-bold mb-6">{showPreview ? 'Vista Previa del Producto' : 'Subir Nuevo Producto'}</h2>
+              
+              {!showPreview ? (
+                <form onSubmit={(e) => { e.preventDefault(); setShowPreview(true); }} className="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm space-y-6">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Precio ($)</label>
-                    <input required value={newPrice} onChange={e => setNewPrice(e.target.value)} type="number" step="0.01" className="w-full p-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-gray-900 outline-none" />
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Nombre del producto</label>
+                    <input required value={newName} onChange={e => setNewName(e.target.value)} type="text" className="w-full p-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-gray-900 outline-none" />
+                  </div>
+                  <div className="grid grid-cols-2 gap-6">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Precio ($)</label>
+                      <input required value={newPrice} onChange={e => setNewPrice(e.target.value)} type="number" step="0.01" className="w-full p-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-gray-900 outline-none" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Categoría</label>
+                      <select value={newCategory} onChange={e => setNewCategory(e.target.value)} className={`w-full p-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-gray-900 outline-none ${newCategory === 'otra' ? 'mb-3' : ''}`}>
+                        <option value="audio">Audio Premium</option>
+                        <option value="smartwatches">Smartwatches</option>
+                        <option value="camaras">Cámaras</option>
+                        <option value="accesorios">Accesorios</option>
+                        <option value="otra">Añadir nueva categoría...</option>
+                      </select>
+                      {newCategory === 'otra' && (
+                        <input required value={customCategory} onChange={e => setCustomCategory(e.target.value)} type="text" placeholder="Nombre de categoría" className="w-full p-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-gray-900 outline-none" />
+                      )}
+                    </div>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Categoría</label>
-                    <select value={newCategory} onChange={e => setNewCategory(e.target.value)} className="w-full p-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-gray-900 outline-none">
-                      <option value="audio">Audio Premium</option>
-                      <option value="smartwatches">Smartwatches</option>
-                      <option value="camaras">Cámaras</option>
-                      <option value="accesorios">Accesorios</option>
-                    </select>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Imagen del Producto</label>
+                    <div className="flex flex-col gap-4">
+                      <div className="flex items-center gap-4">
+                        <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" id="image-upload" />
+                        <label htmlFor="image-upload" className="cursor-pointer bg-gray-50 border border-gray-200 text-gray-700 px-4 py-2 rounded-xl text-sm font-medium hover:bg-gray-100 transition-colors">
+                          Subir archivo local
+                        </label>
+                        <span className="text-sm text-gray-500">O ingresar URL:</span>
+                      </div>
+                      <input value={newImage} onChange={e => setNewImage(e.target.value)} type="text" placeholder="https://... o Base64 Data URL" className="w-full p-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-gray-900 outline-none" />
+                    </div>
+                    {newImage && (
+                      <div className="mt-4">
+                        <img src={newImage} alt="Preview" className="w-24 h-24 object-cover rounded-xl border border-gray-200 bg-gray-50" />
+                      </div>
+                    )}
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">WhatsApp de Contacto (Para recibir pedidos)</label>
+                    <input required value={newWhatsapp} onChange={e => setNewWhatsapp(e.target.value)} type="tel" placeholder="+1234567890" className="w-full p-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-gray-900 outline-none" />
+                  </div>
+                  <div className="pt-4 border-t border-gray-100">
+                    <Button type="submit" className="w-full">Siguiente: Ver Vista Previa</Button>
+                  </div>
+                </form>
+              ) : (
+                <div className="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm space-y-6">
+                  <div className="flex flex-col sm:flex-row gap-8 items-start">
+                    <div className="w-full sm:w-1/2 aspect-square bg-[#F5F5F7] rounded-3xl overflow-hidden p-6 flex items-center justify-center relative">
+                      <img src={newImage || 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=400'} alt={newName} className="w-full h-full object-contain mix-blend-darken" />
+                    </div>
+                    <div className="w-full sm:w-1/2">
+                      <p className="text-sm text-gray-500 uppercase tracking-wider font-semibold mb-2">{currentCategory}</p>
+                      <h3 className="text-3xl font-bold text-gray-900 mb-4">{newName || 'Nombre del Producto'}</h3>
+                      <p className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-gray-900 to-gray-600 mb-6">${parseFloat(newPrice || '0').toFixed(2)}</p>
+                      <div className="text-sm text-gray-600 mb-8 border-t border-gray-100 pt-6">
+                        <p><strong>WhatsApp de Envío:</strong> {newWhatsapp}</p>
+                      </div>
+                      <div className="flex flex-col gap-3">
+                        <Button onClick={handleCreateProduct} className="w-full flex justify-center py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all font-semibold text-lg">Publicar Ahora</Button>
+                        <button onClick={() => setShowPreview(false)} className="w-full px-6 py-3 rounded-xl font-semibold bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors">Volver y Editar</button>
+                      </div>
+                    </div>
                   </div>
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">URL de la Imagen</label>
-                  <input value={newImage} onChange={e => setNewImage(e.target.value)} type="url" placeholder="https://..." className="w-full p-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-gray-900 outline-none" />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">WhatsApp de Contacto (Para recibir pedidos)</label>
-                  <input required value={newWhatsapp} onChange={e => setNewWhatsapp(e.target.value)} type="tel" placeholder="+1234567890" className="w-full p-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-gray-900 outline-none" />
-                </div>
-                <div className="pt-4 border-t border-gray-100">
-                  <Button type="submit" className="w-full">Publicar Producto</Button>
-                </div>
-              </form>
+              )}
             </div>
           )}
 

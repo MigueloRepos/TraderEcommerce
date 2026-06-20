@@ -28,6 +28,14 @@ export function Store() {
   
   const addItem = useCart(state => state.addItem);
 
+  const dynamicCategories: { id: string; name: string }[] = [
+    { id: 'all', name: 'Todos' },
+    ...Array.from(new Set(products.map(p => p.category as string))).filter(c => c && c !== 'all').map((c: string) => ({
+      id: c, 
+      name: CATEGORIES.find(cat => cat.id === c)?.name || c
+    }))
+  ];
+
   useEffect(() => {
     setActiveCategory(searchParams.get('category') || 'all');
   }, [searchParams]);
@@ -92,7 +100,7 @@ export function Store() {
 
           {/* Categories */}
           <div className="flex gap-2 overflow-x-auto pb-4 mb-8 hide-scrollbar">
-            {CATEGORIES.map(cat => (
+            {dynamicCategories.map(cat => (
               <button
                 key={cat.id}
                 onClick={() => {
