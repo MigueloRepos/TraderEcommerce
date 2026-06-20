@@ -4,6 +4,7 @@ import Home from './pages/Home';
 import { Store } from './pages/Store';
 import { Dashboard } from './pages/Dashboard';
 import { Checkout } from './pages/Checkout';
+import { BottomNav } from './components/layout/BottomNav';
 
 export default function App() {
   return (
@@ -14,6 +15,7 @@ export default function App() {
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/checkout" element={<Checkout />} />
       </Routes>
+      <BottomNav />
     </Router>
   );
 }

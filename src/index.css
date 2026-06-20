@@ -18,6 +18,18 @@
   .text-gradient {
     @apply bg-clip-text text-transparent bg-gradient-to-r from-gray-900 via-gray-700 to-black;
   }
+  .hide-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+@keyframes scroll {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(calc(-50% - 12px)); } /* 12px is half of the gap-6 (24px) */
+}
+
+.animate-carousel {
+  animation: scroll 40s linear infinite;
 }
 
 html {

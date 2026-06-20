@@ -10,7 +10,6 @@ import { auth } from '../../lib/firebase';
 
 export function Header() {
   const [isScrolled, setIsScrolled] = useState(false);
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [user, setUser] = useState<FirebaseUser | null>(null);
   
@@ -88,7 +87,7 @@ export function Header() {
                   <User size={20} />
                 )}
               </button>
-              <Link to="/checkout" className="text-gray-900 hover:opacity-70 transition-opacity relative">
+              <Link to="/checkout" className="text-gray-900 hover:opacity-70 transition-opacity relative hidden sm:block">
                 <ShoppingBag size={20} />
                 {cartCount > 0 && (
                   <span className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-blue-600 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
@@ -96,36 +95,10 @@ export function Header() {
                   </span>
                 )}
               </Link>
-              
-              {/* Mobile Menu Toggle */}
-              <button 
-                className="md:hidden text-gray-900"
-                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              >
-                {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
-              </button>
             </div>
           </div>
         </div>
       </header>
-
-      {/* Mobile Menu Overlay */}
-      <AnimatePresence>
-        {isMobileMenuOpen && (
-          <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            className="fixed inset-0 z-30 pt-32 px-6 bg-white/90 backdrop-blur-2xl md:hidden"
-          >
-            <nav className="flex flex-col gap-6 text-2xl font-medium">
-              <Link to="/" onClick={() => setIsMobileMenuOpen(false)} className="border-b border-gray-100 pb-4">Inicio</Link>
-              <Link to="/tienda" onClick={() => setIsMobileMenuOpen(false)} className="border-b border-gray-100 pb-4">Tienda</Link>
-              <button onClick={() => { setIsMobileMenuOpen(false); handleUserClick(); }} className="text-left border-b border-gray-100 pb-4">Mi Cuenta</button>
-            </nav>
-          </motion.div>
-        )}
-      </AnimatePresence>
 
       <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} />
     </>
